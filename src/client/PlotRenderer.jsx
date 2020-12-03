@@ -32,12 +32,14 @@ export class PlotRenderer extends React.Component {
     this.animateRealData = this.animateRealData.bind(this);
     this.createFakeDataTable = this.createFakeDataTable.bind(this);
     this.createRealDataTable = this.createRealDataTable.bind(this);
+    this.getMap = this.getMap.bind(this);
     this.fetchData = this.fetchData.bind(this);
   }
 
   async componentDidMount() {
     try {
       this.createRealDataTable();
+      this.getMap();
       this.animationFrameId = window.setInterval(this.animateRealData, REASONABLE_API_REFRESH_RATE);
     } catch (error) {
       console.error(error);
@@ -53,6 +55,8 @@ export class PlotRenderer extends React.Component {
       table: this.state.table,
       layers: [this.state.layer]
     };
+
+    console.log("i am in render")
 
     if (!Object.keys(config.table).length) {
       return null;
@@ -118,5 +122,22 @@ export class PlotRenderer extends React.Component {
     this.setState({
       table: results.table
     });
+  }
+
+  fetchMapData() {
+    return fetch('http://localhost:8617/map', {
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      }
+    });
+  }
+
+
+  async getMap() {
+    console.log("I am in createrealdatatable")
+    const resp = await this.fetchMapData();
+    const res = await resp.text();
+    console.log("This is response", res);
   }
 }

@@ -6,6 +6,8 @@ import axios from 'axios'
 const baseURL = process.env.INFLUX_URL; // url of your cloud instance (e.g. https://us-west-2-1.aws.cloud2.influxdata.com/)
 const influxToken = process.env.INFLUX_TOKEN; // create an all access token in the UI, export it as INFLUX_TOKEN
 const orgID = process.env.ORG_ID; // export your org id;
+const mapboxUrl = process.env.MAPBOX_URL;
+const apiKey = process.env.API_KEY; //export your own apiKey;
 
 const influxProxy = axios.create({
   baseURL,
@@ -27,11 +29,10 @@ app.get('/dist/bundle.js', (req, res) => {
 })
 
 app.get('/query', (req, res) => {
-
   const bucket = 'telegraf';
 
   const query = `
-  from(bucket: "telegraf")
+  from(bucket: "palak+cloud2's Bucket")
     |> range(start: -30s)
     |> filter(fn: (r) => r._measurement == "mem")
     |> filter(fn: (r) => r._field == "used_percent")
@@ -55,6 +56,14 @@ app.get('/query', (req, res) => {
     res.send(error.message)
   });
 
+})
+
+app.get('/map', (req, res) => {
+  console.log("maboxUrls", mapboxUrl);
+  const link = mapboxUrl + '?access_token=' + apiKey;
+  axios.get(link).then((response) => {
+      res.send(response.data)
+    })
 })
 
 app.listen(port, () => {
