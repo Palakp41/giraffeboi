@@ -2,11 +2,12 @@
 import express from 'express'
 
 import axios from 'axios'
+import moment from 'moment'
 
 const baseURL = process.env.INFLUX_URL; // url of your cloud instance (e.g. https://us-west-2-1.aws.cloud2.influxdata.com/)
 const influxToken = process.env.INFLUX_TOKEN; // create an all access token in the UI, export it as INFLUX_TOKEN
 const orgID = process.env.ORG_ID; // export your org id;
-const mapboxUrl = process.env.MAPBOX_URL;
+const mapboxUrl = process.env.API_URL;
 const apiKey = process.env.API_KEY; //export your own apiKey;
 
 const influxProxy = axios.create({
@@ -30,13 +31,15 @@ app.get('/dist/bundle.js', (req, res) => {
 
 app.get('/query', (req, res) => {
   const bucket = 'telegraf';
+  const start = '2019-02-01 00:00:00.000'
+  const stop = '2020-02-28 23:59:00.000'
 
   const query = `
   from(bucket: "palak+cloud2's Bucket")
-    |> range(start: -30s)
-    |> filter(fn: (r) => r._measurement == "mem")
-    |> filter(fn: (r) => r._field == "used_percent")
-    |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)
+  |> range(start: ${moment(start).toISOString()}, stop: ${moment(stop).toISOString()})
+  |> filter(fn: (r) => r["_measurement"] == "migration")
+  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)
+  |> yield(name: "mean")
   `.trim();
 
   influxProxy.request({
@@ -58,13 +61,17 @@ app.get('/query', (req, res) => {
 
 })
 
-app.get('/map', (req, res) => {
-  console.log("maboxUrls", mapboxUrl);
-  const link = mapboxUrl + '?access_token=' + apiKey;
-  axios.get(link).then((response) => {
-      res.send(response.data)
-    })
-})
+app.get('/apiUrlKey', (req, res) => {
+  res.send({ url: mapboxUrl, key: apiKey })
+  })
+
+// app.get('/map', (req, res) => {
+//   console.log("maboxUrls", mapboxUrl);
+//   const link = mapboxUrl + '?access_token=' + apiKey;
+//   axios.get(link).then((response) => {
+//       res.send(response.data)
+//     })
+// })
 
 app.listen(port, () => {
   console.log(`listening on port :${port}`);
