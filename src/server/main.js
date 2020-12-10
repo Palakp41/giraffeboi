@@ -65,13 +65,13 @@ app.get('/apiUrlKey', (req, res) => {
   res.send({ url: mapboxUrl, key: apiKey })
   })
 
-// app.get('/map', (req, res) => {
-//   console.log("maboxUrls", mapboxUrl);
-//   const link = mapboxUrl + '?access_token=' + apiKey;
-//   axios.get(link).then((response) => {
-//       res.send(response.data)
-//     })
-// })
+app.get('/map', (req, res) => {
+  console.log("maboxUrls", mapboxUrl);
+  const link = mapboxUrl + '?access_token=' + apiKey;
+  axios.get(link).then((response) => {
+      res.send(response.data)
+    })
+})
 
 app.listen(port, () => {
   console.log(`listening on port :${port}`);

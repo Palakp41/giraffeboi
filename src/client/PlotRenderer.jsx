@@ -141,6 +141,7 @@ export class PlotRenderer extends React.Component {
       console.error("error", error.message);
     }
 
+    console.log("results: ", results);
     this.setState({
       table: results.table,
     });
@@ -158,9 +159,11 @@ export class PlotRenderer extends React.Component {
   async getMapUrlKey() {
     const resp = await this.fetchMapUrlKey();
     const res = await resp.json();
-    console.log("This is response", res);
     const { url, key } = res;
-    const tileServerConfiguration = { tileServerUrl: url, bingKey: key };
+    const tileServerConfiguration = {
+      tileServerUrl: url + "?access_token=" + key,
+      bingKey: "",
+    };
     this.setState({
       layer: {
         ...this.state.layer,
@@ -170,19 +173,19 @@ export class PlotRenderer extends React.Component {
     return resp;
   }
 
-  // fetchMapData() {
-  //   return fetch('http://localhost:8617/map', {
-  //     headers: {
-  //       'Content-Type': 'application/json',
-  //       'Access-Control-Allow-Origin': '*'
-  //     }
-  //   });
-  // }
+  fetchMapData() {
+    return fetch("http://localhost:8617/map", {
+      headers: {
+        "Content-Type": "application/json",
+        "Access-Control-Allow-Origin": "*",
+      },
+    });
+  }
 
-  // async getMap() {
-  //   console.log("I am in createrealdatatable")
-  //   const resp = await this.fetchMapData();
-  //   const res = await resp.text();
-  //   console.log("This is response", res);
-  // }
+  async getMap() {
+    console.log("I am in createrealdatatable");
+    const resp = await this.fetchMapData();
+    const res = await resp.json();
+    console.log("This is response", res);
+  }
 }

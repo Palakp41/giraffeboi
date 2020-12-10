@@ -977,6 +977,10 @@
     lodash "^4.17.19"
     to-fast-properties "^2.0.0"
 
+"@influxdata/giraffe@../giraffe/giraffe/influxdata-giraffe-1.0.2.tgz":
+  version "1.0.2"
+  resolved "../giraffe/giraffe/influxdata-giraffe-1.0.2.tgz#969f9e032abc780a552f941cd7cbafb48f3d0d42"
+
 "@influxdata/giraffe@^0.38.0":
   version "0.38.0"
   resolved "https://registry.yarnpkg.com/@influxdata/giraffe/-/giraffe-0.38.0.tgz#7e97e019ed3e7b18c31db77f59265dd4817dc553"
