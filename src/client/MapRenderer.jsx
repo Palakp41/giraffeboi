@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom";
 
 import { Plot, newTable, fromFlux } from "@influxdata/giraffe";
+import axios from "axios";
 
 const style = {
   width: "calc(70vw - 20px)",
@@ -55,7 +56,18 @@ export class MapRenderer extends React.Component {
   async componentDidMount() {
     try {
       this.fetchInfluxData();
-      await this.getTileServerUrl();
+      const res = await this.getTileServerUrl();
+      const { url } = res;
+      const tileServerConfiguration = {
+        tileServerUrl: url,
+        bingKey: "",
+      };
+      this.setState({
+        layer: {
+          ...this.state.layer,
+          tileServerConfiguration: tileServerConfiguration,
+        },
+      });
       this.animationFrameId = window.setInterval(
         this.animateRealData,
         REASONABLE_API_REFRESH_RATE
@@ -111,30 +123,45 @@ export class MapRenderer extends React.Component {
     });
   }
 
-  fetchTileServerUrl() {
+  fetchTileServerUrl(token) {
     return fetch("http://localhost:8617/tileServerUrl", {
       headers: {
         "Content-Type": "application/json",
         "Access-Control-Allow-Origin": "*",
+        authorization: `Token ${token}`,
       },
     });
   }
 
   async getTileServerUrl() {
-    const resp = await this.fetchTileServerUrl();
-    const res = await resp.json();
-    console.log("This is response", res);
-    const { url } = res;
-    const tileServerConfiguration = {
-      tileServerUrl: url,
-      bingKey: "",
-    };
-    this.setState({
-      layer: {
-        ...this.state.layer,
-        tileServerConfiguration: tileServerConfiguration,
+    const jstObj = {
+      aud: "gateway.influxdata.com",
+      iat: 1568628980,
+      iss: "cloud2.influxdata.com",
+      kid: "non-static",
+      permissions: [
+        {
+          action: "write",
+          resource: {
+            type: "buckets",
+            id: "0000000000000001",
+            orgID: "0000000000000002",
+          },
+        },
+      ],
+      user: {
+        id: "0000000000000001",
+        name: "bbuddin@influxdata.com",
+        status: "active",
       },
-    });
-    return resp;
+      features: {
+        exampleBooleanFeatureFlag: true,
+        exampleNumericFeatureFlag: 2,
+      },
+    };
+    const token = await axios.post("http://localhost:8617/jwt", jstObj);
+    const resp = await this.fetchTileServerUrl(token.data);
+    const res = await resp.json();
+    return res;
   }
 }

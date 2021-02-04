@@ -4,9 +4,13 @@ import dotenv from "dotenv";
 dotenv.config();
 import express from "express";
 import request from "request-promise";
+import fs from "fs";
 
 import axios from "axios";
 import moment from "moment";
+
+import jwt from "jsonwebtoken";
+import bodyParser from "body-parser";
 
 const baseURL = process.env.INFLUX_URL; // url of your cloud instance (e.g. https://us-west-2-1.aws.cloud2.influxdata.com/)
 const influxToken = process.env.INFLUX_TOKEN; // create an all access token in the UI, export it as INFLUX_TOKEN
@@ -14,6 +18,9 @@ const orgID = process.env.ORG_ID; // export your org id;
 const apiKey = process.env.API_KEY; //export your own apiKey;
 const directMapboxUrl = process.env.DIRECT_URL;
 const localMapEndpoint = process.env.MAP_ENDPOINT;
+const mapAccessToken = process.env.MAP_ACCESS_TOKEN;
+
+let mapboxurl = "";
 
 const influxProxy = axios.create({
   baseURL,
@@ -25,6 +32,8 @@ const influxProxy = axios.create({
 
 const app = express();
 const port = 8617;
+
+app.use(bodyParser.json());
 
 app.get("/", (req, res) => {
   res.sendFile("index.html", { root: "./" });
@@ -203,9 +212,56 @@ app.get("/mapquery", (req, res) => {
     });
 });
 
-app.get("/tileServerUrl", (req, res) => {
-  res.send({ url: localMapEndpoint });
+const accessTokenSecret = "myverysecrettoken";
+
+const authenticateJWT = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+
+  if (authHeader) {
+    const token = authHeader.split(" ")[1];
+
+    jwt.verify(token, accessTokenSecret, (err, user) => {
+      if (err) {
+        console.log(err);
+        return res.sendStatus(403);
+      }
+
+      const obj = jwt.decode(token);
+      if (obj.kid !== "static") {
+        return res.sendStatus(403);
+      }
+      req.user = user;
+      next();
+    });
+  } else {
+    res.sendStatus(401);
+  }
+};
+
+app.post("/jwt", (req, res) => {
+  console.log(req.body);
+  const token = jwt.sign(req.body, accessTokenSecret);
+  res.send(token);
 });
+
+app.get("/tileServerUrl", authenticateJWT, (req, res) => {
+  res.send({ url: mapboxurl });
+});
+
+const getTokenFromFile = (filePath) => {
+  if (filePath.includes("file:")) {
+    filePath = filePath.substring(7);
+    console.log(filePath);
+
+    fs.readFile(filePath, "utf8", (err, data) => {
+      if (err) {
+        console.error(err);
+        return;
+      }
+      console.log(JSON.parse(data));
+    });
+  }
+};
 
 app.get("/map/:z/:x/:y", (req, res) => {
   const { x, y, z } = req.params;
@@ -219,4 +275,34 @@ app.get("/map/:z/:x/:y", (req, res) => {
 
 app.listen(port, () => {
   console.log(`listening on port :${port}`);
+
+  var dt = new Date();
+  dt.setHours(dt.getHours() + 1);
+
+  const tokenBody = {
+    scopes: [
+      "styles:tiles",
+      "styles:read",
+      "fonts:read",
+      "datasets:read",
+      "vision:read",
+    ],
+    expires: dt,
+  };
+
+  const link = `https://api.mapbox.com/tokens/v2/influxdata?access_token=${mapAccessToken}`;
+
+  const filePath = "file:///Users/palak/giraffeboi/src/envVars.txt";
+  const t = getTokenFromFile(filePath);
+
+  axios
+    .post(link, tokenBody)
+    .then((response) => {
+      console.log(response);
+      const token = response.data.token;
+      mapboxurl = `https://api.mapbox.com/styles/v1/influxdata/ckhl79okh00o919npquotuqxp/tiles/256/{z}/{x}/{y}?access_token=${token}`;
+    })
+    .catch((error) => {
+      console.error("Error :", error);
+    });
 });
